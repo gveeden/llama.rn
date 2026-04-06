@@ -2,7 +2,7 @@
 
 #include "chat.h"
 
-#include nlohmann/json.hpp
+#include "nlohmann/json.hpp"
 
 #include <optional>
 #include <string>

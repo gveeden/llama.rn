@@ -62,16 +62,16 @@ while IFS= read -r -d '' file; do
     sed -i "" "s|GGUF_|LM_GGUF_|g" "$file"
     sed -i "" "s|gguf_|lm_gguf_|g" "$file"
     sed -i "" "s|GGMLMetalClass|LMGGMLMetalClass|g" "$file"
-    sed -i "" "s|<nlohmann/json.hpp>|"nlohmann/json.hpp"|g" "$file"
-    sed -i "" "s|<nlohmann/json_fwd.hpp>|"nlohmann/json_fwd.hpp"|g" "$file"
+    sed -i "" 's|<nlohmann/json.hpp>|"nlohmann/json.hpp"|g' "$file"
+    sed -i "" 's|<nlohmann/json_fwd.hpp>|"nlohmann/json_fwd.hpp"|g' "$file"
   else
     sed -i "s|GGML_|LM_GGML_|g" "$file"
     sed -i "s|ggml_|lm_ggml_|g" "$file"
     sed -i "s|GGUF_|LM_GGUF_|g" "$file"
     sed -i "s|gguf_|lm_gguf_|g" "$file"
     sed -i "s|GGMLMetalClass|LMGGMLMetalClass|g" "$file"
-    sed -i "s|<nlohmann/json.hpp>|"nlohmann/json.hpp"|g" "$file"
-    sed -i "s|<nlohmann/json_fwd.hpp>|"nlohmann/json_fwd.hpp"|g" "$file"
+    sed -i 's|<nlohmann/json.hpp>|"nlohmann/json.hpp"|g' "$file"
+    sed -i 's|<nlohmann/json_fwd.hpp>|"nlohmann/json_fwd.hpp"|g' "$file"
   fi
 done < <(find ./cpp/ggml-metal ./cpp/ggml-cpu ./cpp/common \
     \( -name "*.cpp" -o -name "*.h" -o -name "*.c" -o -name "*.m" -o -name "*.metal" \) \

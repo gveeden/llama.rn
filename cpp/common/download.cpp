@@ -6,7 +6,7 @@
 #include "download.h"
 
 #define JSON_ASSERT LM_GGML_ASSERT
-#include nlohmann/json.hpp
+#include "nlohmann/json.hpp"
 
 #include <algorithm>
 #include <filesystem>

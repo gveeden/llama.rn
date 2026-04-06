@@ -10,7 +10,7 @@
 #include <vector>
 #include <map>
 
-#include nlohmann/json_fwd.hpp
+#include "nlohmann/json_fwd.hpp"
 
 struct common_chat_templates;
 
