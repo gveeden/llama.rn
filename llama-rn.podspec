@@ -29,7 +29,14 @@ Pod::Spec.new do |s|
     s.source_files = "ios/**/*.{h,m,mm}", "cpp/**/*.{h,cpp,hpp,c,m,mm}"
     # Exclude standalone tooling sources copied from llama.cpp. The mtmd debug
     # CLI depends on common/arg.h and should not be linked into the RN library.
-    s.exclude_files = "cpp/ggml-opencl/*.{c,cpp}", "cpp/ggml-hexagon/**/*.{c,cpp}", "cpp/tools/mtmd/debug/*.cpp"
+    s.exclude_files = [
+      "cpp/ggml-opencl/*.{c,cpp}",
+      "cpp/ggml-hexagon/**/*.{c,cpp}",
+      "cpp/tools/mtmd/debug/*.cpp",
+      "cpp/ggml-cpu/kleidiai/**/*",
+      "cpp/ggml-cpu/spacemit/**/*",
+      "cpp/models/**/*.cpp",
+    ]
     s.resources = "cpp/ggml-metal/ggml-metal.metal"
     base_compiler_flags += " -DRNLLAMA_BUILD_FROM_SOURCE"
     header_search_paths << '"$(PODS_TARGET_SRCROOT)/cpp"'
