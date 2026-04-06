@@ -77,7 +77,7 @@ while IFS= read -r -d '' file; do
     sed -i 's|<nlohmann/json.hpp>|"nlohmann/json.hpp"|g' "$file"
     sed -i 's|<nlohmann/json_fwd.hpp>|"nlohmann/json_fwd.hpp"|g' "$file"
   fi
-done < <(find ./cpp/ggml-metal ./cpp/ggml-cpu ./cpp/common \
+done < <(find ./cpp/ggml-metal ./cpp/ggml-cpu ./cpp/common ./cpp/models \
     \( -name "*.cpp" -o -name "*.h" -o -name "*.c" -o -name "*.m" -o -name "*.metal" \) \
     -print0 2>/dev/null; \
   find ./cpp -maxdepth 1 \
