@@ -36,6 +36,8 @@ Pod::Spec.new do |s|
       "cpp/ggml-cpu/kleidiai/**/*",
       "cpp/ggml-cpu/spacemit/**/*",
       "cpp/models/**/*.cpp",
+      "cpp/common/http.{h,cpp}",
+      "cpp/common/download.{h,cpp}",
     ]
     s.resources = "cpp/ggml-metal/ggml-metal.metal"
     base_compiler_flags += " -DRNLLAMA_BUILD_FROM_SOURCE"
