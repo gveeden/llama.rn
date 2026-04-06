@@ -30,6 +30,10 @@ echo "📦 Copying Llama core..."
 cp "$LLAMA_DIR"/include/llama*.h "$CPP_DIR"/
 cp "$LLAMA_DIR"/src/llama*.cpp "$CPP_DIR"/
 cp "$LLAMA_DIR"/src/llama*.h "$CPP_DIR"/
+cp "$LLAMA_DIR"/src/unicode.{h,cpp} "$CPP_DIR"/
+cp "$LLAMA_DIR"/src/unicode-data.{h,cpp} "$CPP_DIR"/
+mkdir -p "$CPP_DIR"/models
+cp "$LLAMA_DIR"/src/models/models.h "$CPP_DIR"/models/
 
 # 3. Copy Hardware Backends
 echo "📦 Copying Hardware Backends..."
