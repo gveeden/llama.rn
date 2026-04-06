@@ -49,6 +49,9 @@ echo "📦 Copying Common Utilities..."
 mkdir -p "$CPP_DIR"/common
 cp -r "$LLAMA_DIR"/common/*.h "$CPP_DIR"/common/
 cp -r "$LLAMA_DIR"/common/*.cpp "$CPP_DIR"/common/
+if [ -d "$LLAMA_DIR/common/jinja" ]; then
+    cp -r "$LLAMA_DIR/common/jinja" "$CPP_DIR/common/jinja"
+fi
 
 # 5. Copy Vendors
 echo "📦 Copying Vendors..."
