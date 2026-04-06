@@ -168,4 +168,38 @@ if ! grep -q "ggml-version.h" "$CPP_DIR/ggml.c"; then
     fi
 fi
 
+# 9. Preprocess ggml-metal.metal to inline local headers for runtime compilation
+# newLibraryWithSource: has no include path support, so headers must be inlined.
+echo "📦 Preprocessing ggml-metal.metal (inlining headers for runtime compilation)..."
+python3 - <<'PYEOF'
+import os, re
+
+base = "cpp/ggml-metal"
+root = "cpp"
+
+def read_file(path):
+    with open(path, 'r', errors='replace') as f:
+        return f.read()
+
+def inline_includes(src, search_dirs, depth=0):
+    if depth > 5:
+        return src
+    def replacer(m):
+        fname = m.group(1)
+        for d in search_dirs:
+            fpath = os.path.join(d, fname)
+            if os.path.exists(fpath):
+                inner = read_file(fpath)
+                return f"// --- begin inline: {fname} ---\n" + inline_includes(inner, [os.path.dirname(fpath)] + search_dirs, depth+1) + f"\n// --- end inline: {fname} ---"
+        return m.group(0)  # keep original if not found
+    return re.sub(r'^#include\s+"([^"]+)"', replacer, src, flags=re.MULTILINE)
+
+metal_path = os.path.join(base, "ggml-metal.metal")
+src = read_file(metal_path)
+preprocessed = inline_includes(src, [base, root])
+with open(metal_path, 'w') as f:
+    f.write(preprocessed)
+print(f"  Preprocessed {metal_path}")
+PYEOF
+
 echo "✨ Sync complete!"
