@@ -26,18 +26,18 @@ struct s390x_features {
     }
 };
 
-static int ggml_backend_cpu_s390x_score() {
+static int lm_ggml_backend_cpu_s390x_score() {
     int score = 1;
     s390x_features sf;
 
 // IBM z15 / LinuxONE 3
-#ifdef GGML_USE_VXE2
+#ifdef LM_GGML_USE_VXE2
     if (!sf.has_vxe2) { return 0; }
     score += 1 << 1;
 #endif
 
 // IBM z16 / LinuxONE 4 and z17 / LinuxONE 5
-#ifdef GGML_USE_NNPA
+#ifdef LM_GGML_USE_NNPA
     if (!sf.has_nnpa) { return 0; }
     score += 1 << 2;
 #endif
@@ -45,6 +45,6 @@ static int ggml_backend_cpu_s390x_score() {
     return score;
 }
 
-GGML_BACKEND_DL_SCORE_IMPL(ggml_backend_cpu_s390x_score)
+LM_GGML_BACKEND_DL_SCORE_IMPL(lm_ggml_backend_cpu_s390x_score)
 
 #endif  // __s390x__

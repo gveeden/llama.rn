@@ -77,8 +77,8 @@
 
 namespace {
 
-inline float unhalf(ggml_fp16_t d) {
-    return GGML_CPU_FP16_TO_FP32(d);
+inline float unhalf(lm_ggml_fp16_t d) {
+    return LM_GGML_CPU_FP16_TO_FP32(d);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -302,21 +302,21 @@ template <> inline float32x4_t load(const float *p) {
 }
 #if !defined(_MSC_VER)
 // FIXME: this should check for __ARM_FEATURE_FP16_VECTOR_ARITHMETIC
-template <> inline float16x8_t load(const ggml_fp16_t *p) {
+template <> inline float16x8_t load(const lm_ggml_fp16_t *p) {
     return vld1q_f16((const float16_t *)p);
 }
-template <> inline float32x4_t load(const ggml_fp16_t *p) {
+template <> inline float32x4_t load(const lm_ggml_fp16_t *p) {
     return vcvt_f32_f16(vld1_f16((const float16_t *)p));
 }
 #endif // _MSC_VER
 #endif // __ARM_NEON
 
 #if defined(__VXE__) || defined(__VXE2__)
-template <> inline float32x4_t load(const ggml_fp16_t * p) {
+template <> inline float32x4_t load(const lm_ggml_fp16_t * p) {
     float tmp[4];
 
     for (int i = 0; i < 4; i++) {
-        tmp[i] = GGML_CPU_FP16_TO_FP32(p[i]);
+        tmp[i] = LM_GGML_CPU_FP16_TO_FP32(p[i]);
     }
 
     return vec_xl(0, (const float *)(tmp));
@@ -339,14 +339,14 @@ template <> inline __m256 load(const float *p) {
 #endif // __AVX__
 
 #if defined(__AVX2__) || defined(__AVX512F__)
-template <> inline __m256 load(const ggml_bf16_t *p) {
+template <> inline __m256 load(const lm_ggml_bf16_t *p) {
     return _mm256_castsi256_ps(
         _mm256_slli_epi32(_mm256_cvtepu16_epi32(_mm_loadu_si128((const __m128i *)p)), 16));
 }
 #endif // __AVX2__
 
 #if defined(__F16C__)
-template <> inline __m256 load(const ggml_fp16_t *p) {
+template <> inline __m256 load(const lm_ggml_fp16_t *p) {
     return _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)p));
 }
 #endif // __F16C__
@@ -355,20 +355,20 @@ template <> inline __m256 load(const ggml_fp16_t *p) {
 template <> inline __m512 load(const float *p) {
     return _mm512_loadu_ps(p);
 }
-template <> inline __m512 load(const ggml_fp16_t *p) {
+template <> inline __m512 load(const lm_ggml_fp16_t *p) {
     return _mm512_cvtph_ps(_mm256_loadu_si256((const __m256i *)p));
 }
-template <> inline __m512 load(const ggml_bf16_t *p) {
+template <> inline __m512 load(const lm_ggml_bf16_t *p) {
     return _mm512_castsi512_ps(
         _mm512_slli_epi32(_mm512_cvtepu16_epi32(_mm256_loadu_si256((const __m256i *)p)), 16));
 }
 #endif // __AVX512F__
 
 #if defined(__AVX512BF16__)
-template <> inline __m512bh load(const ggml_bf16_t *p) {
+template <> inline __m512bh load(const lm_ggml_bf16_t *p) {
     return (__m512bh)_mm512_loadu_ps((const float *)p);
 }
-template <> inline __m256bh load(const ggml_bf16_t *p) {
+template <> inline __m256bh load(const lm_ggml_bf16_t *p) {
     return (__m256bh)_mm256_loadu_ps((const float *)p);
 }
 template <> inline __m512bh load(const float *p) {
@@ -380,16 +380,16 @@ template <> inline __m256bh load(const float *p) {
 #endif
 
 #if defined(__riscv_zvfh)
-template <> inline vfloat16mf2_t load(const ggml_fp16_t *p) {
+template <> inline vfloat16mf2_t load(const lm_ggml_fp16_t *p) {
     return __riscv_vle16_v_f16mf2(reinterpret_cast<const _Float16 *>(p), __riscv_vsetvlmax_e16mf2());
 }
-template <> inline vfloat16m1_t load(const ggml_fp16_t *p) {
+template <> inline vfloat16m1_t load(const lm_ggml_fp16_t *p) {
     return __riscv_vle16_v_f16m1(reinterpret_cast<const _Float16 *>(p), __riscv_vsetvlmax_e16m1());
 }
-template <> inline vfloat16m2_t load(const ggml_fp16_t *p) {
+template <> inline vfloat16m2_t load(const lm_ggml_fp16_t *p) {
     return __riscv_vle16_v_f16m2(reinterpret_cast<const _Float16 *>(p), __riscv_vsetvlmax_e16m2());
 }
-template <> inline vfloat16m4_t load(const ggml_fp16_t *p) {
+template <> inline vfloat16m4_t load(const lm_ggml_fp16_t *p) {
     return __riscv_vle16_v_f16m4(reinterpret_cast<const _Float16 *>(p), __riscv_vsetvlmax_e16m4());
 }
 template <> inline vfloat32m1_t load(const float *p) {
@@ -407,13 +407,13 @@ template <> inline vfloat32m8_t load(const float *p) {
 #endif
 
 #if defined(__riscv_zvfbfwma)
-template <> inline vbfloat16mf2_t load(const ggml_bf16_t *p) {
+template <> inline vbfloat16mf2_t load(const lm_ggml_bf16_t *p) {
     return __riscv_vle16_v_bf16mf2(reinterpret_cast<const __bf16*>(p), __riscv_vsetvlmax_e16mf2());
 }
-template <> inline vbfloat16m1_t load(const ggml_bf16_t *p) {
+template <> inline vbfloat16m1_t load(const lm_ggml_bf16_t *p) {
     return __riscv_vle16_v_bf16m1(reinterpret_cast<const __bf16*>(p), __riscv_vsetvlmax_e16m1());
 }
-template <> inline vbfloat16m2_t load(const ggml_bf16_t *p) {
+template <> inline vbfloat16m2_t load(const lm_ggml_bf16_t *p) {
     return __riscv_vle16_v_bf16m2(reinterpret_cast<const __bf16*>(p), __riscv_vsetvlmax_e16m2());
 }
 #endif
@@ -477,7 +477,7 @@ static constexpr inline int64_t BLOC_POS(int64_t ib, int64_t ibN, int64_t bloc_s
 template <int KN, typename D, typename V, typename TA, typename TB, typename TC>
 class tinyBLAS {
   public:
-    tinyBLAS(const ggml_compute_params * params, int64_t k,
+    tinyBLAS(const lm_ggml_compute_params * params, int64_t k,
              const TA *A, int64_t lda,
              const TB *B, int64_t ldb,
              TC *C, int64_t ldc)
@@ -533,8 +533,8 @@ class tinyBLAS {
         if constexpr (RN > 1) {
             return mnpack<RM, RN-1, BM>(m, n, SIZE_N, BN);
         } else {
-            GGML_LOG_ERROR("mnpack<%d, %d> bloc size not supported\n", RM, (int)SIZE_N);
-            GGML_ASSERT(false); // we have miss something.
+            LM_GGML_LOG_ERROR("mnpack<%d, %d> bloc size not supported\n", RM, (int)SIZE_N);
+            LM_GGML_ASSERT(false); // we have miss something.
         }
     }
 
@@ -574,7 +574,7 @@ class tinyBLAS {
 
     template <int RM, int RN, int BM>
     NOINLINE void gemm(int64_t m, int64_t n, int64_t BN) {
-        GGML_ASSERT(m % (RM * BM) == 0);
+        LM_GGML_ASSERT(m % (RM * BM) == 0);
         const int64_t ytiles = m / (RM * BM);
         const int64_t xtiles = (n + RN -1) / RN;
         const int64_t jj_RN = (xtiles - (xtiles * RN - n));
@@ -586,12 +586,12 @@ class tinyBLAS {
         const int64_t nb_job = ytiles * NB_BN;
 
         if (params->ith == 0) {
-            GGML_ASSERT( jj_BN * SIZE_BN + (NB_BN - jj_BN) * (SIZE_BN - 1) == xtiles);
+            LM_GGML_ASSERT( jj_BN * SIZE_BN + (NB_BN - jj_BN) * (SIZE_BN - 1) == xtiles);
             // Every thread starts at ith, so the first unprocessed chunk is nth.  This save a bit of coordination right at the start.
-            ggml_threadpool_chunk_set(params->threadpool, params->nth);
+            lm_ggml_threadpool_chunk_set(params->threadpool, params->nth);
         }
 
-        ggml_barrier(params->threadpool);
+        lm_ggml_barrier(params->threadpool);
 
         int64_t job = params->ith;
         while (job < nb_job) {
@@ -614,17 +614,17 @@ class tinyBLAS {
                         gemm_bloc<RM, RN-1>(ii + bi, jj);
                     }
                 }
-                GGML_ASSERT(jj == jj2);
+                LM_GGML_ASSERT(jj == jj2);
             }
 
-            job = ggml_threadpool_chunk_add(params->threadpool, 1);
+            job = lm_ggml_threadpool_chunk_add(params->threadpool, 1);
         }
 
-        ggml_barrier(params->threadpool);
+        lm_ggml_barrier(params->threadpool);
         return;
     }
 
-    const ggml_compute_params * params;
+    const lm_ggml_compute_params * params;
     const TA *const A;
     const TB *const B;
     TC *const C;
@@ -638,7 +638,7 @@ class tinyBLAS {
 template <typename D, typename V, typename TA, typename TB, typename TC>
 class tinyBLAS_RVV {
   public:
-    tinyBLAS_RVV(const ggml_compute_params * params, int64_t k,
+    tinyBLAS_RVV(const lm_ggml_compute_params * params, int64_t k,
              const TA *A, int64_t lda,
              const TB *B, int64_t ldb,
              TC *C, int64_t ldc)
@@ -711,8 +711,8 @@ class tinyBLAS_RVV {
         if constexpr (RN > 1) {
             return mnpack<RM, RN-1, BM>(m, n, SIZE_N, BN);
         } else {
-            GGML_LOG_ERROR("mnpack<%d, %d> bloc size not supported\n", RM, (int)SIZE_N);
-            GGML_ASSERT(false); // we have miss something.
+            LM_GGML_LOG_ERROR("mnpack<%d, %d> bloc size not supported\n", RM, (int)SIZE_N);
+            LM_GGML_ASSERT(false); // we have miss something.
         }
     }
 
@@ -1140,7 +1140,7 @@ class tinyBLAS_RVV {
 
     template <int RM, int RN, int BM>
     NOINLINE void gemm(int64_t m, int64_t n, int64_t BN) {
-        GGML_ASSERT(m % (RM * BM) == 0);
+        LM_GGML_ASSERT(m % (RM * BM) == 0);
         const int64_t ytiles = m / (RM * BM);
         const int64_t xtiles = (n + RN -1) / RN;
         const int64_t jj_RN = (xtiles - (xtiles * RN - n));
@@ -1152,12 +1152,12 @@ class tinyBLAS_RVV {
         const int64_t nb_job = ytiles * NB_BN;
 
         if (params->ith == 0) {
-            GGML_ASSERT( jj_BN * SIZE_BN + (NB_BN - jj_BN) * (SIZE_BN - 1) == xtiles);
+            LM_GGML_ASSERT( jj_BN * SIZE_BN + (NB_BN - jj_BN) * (SIZE_BN - 1) == xtiles);
             // Every thread starts at ith, so the first unprocessed chunk is nth.  This save a bit of coordination right at the start.
-            ggml_threadpool_chunk_set(params->threadpool, params->nth);
+            lm_ggml_threadpool_chunk_set(params->threadpool, params->nth);
         }
 
-        ggml_barrier(params->threadpool);
+        lm_ggml_barrier(params->threadpool);
 
         int64_t job = params->ith;
         while (job < nb_job) {
@@ -1180,17 +1180,17 @@ class tinyBLAS_RVV {
                         gemm_bloc<RM, RN-1>(ii + bi, jj);
                     }
                 }
-                GGML_ASSERT(jj == jj2);
+                LM_GGML_ASSERT(jj == jj2);
             }
 
-            job = ggml_threadpool_chunk_add(params->threadpool, 1);
+            job = lm_ggml_threadpool_chunk_add(params->threadpool, 1);
         }
 
-        ggml_barrier(params->threadpool);
+        lm_ggml_barrier(params->threadpool);
         return;
     }
 
-    const ggml_compute_params * params;
+    const lm_ggml_compute_params * params;
     const TA *const A;
     const TB *const B;
     TC *const C;
@@ -1802,14 +1802,14 @@ template<typename T>
 struct mma_instr;
 
 template<>
-struct mma_instr<ggml_bf16_t> {
+struct mma_instr<lm_ggml_bf16_t> {
     static inline void outer_product(acc_t *acc, vec_t a, vec_t b) {
         __builtin_mma_xvbf16ger2pp(acc, a, b);
     }
 };
 
 template<>
-struct mma_instr<ggml_fp16_t> {
+struct mma_instr<lm_ggml_fp16_t> {
     static inline void outer_product(acc_t *acc, vec_t a, vec_t b) {
         __builtin_mma_xvf16ger2pp(acc, a, b);
     }
@@ -3655,7 +3655,7 @@ class tinyBLAS_PPC {
  *
  *     llamafile_sgemm(m, n, k, A, lda, B, ldb, C, ldc,
  *                     0, 1,
- *                     GGML_TYPE_F32, GGML_TYPE_F32, GGML_TYPE_F32);
+ *                     LM_GGML_TYPE_F32, LM_GGML_TYPE_F32, LM_GGML_TYPE_F32);
  *
  * @param m is rows in `A` and `C`
  * @param n is cols in `B` and `C`
@@ -3673,7 +3673,7 @@ class tinyBLAS_PPC {
  * @param Ctype is GGML data type of `C`
  * @return true if this function was able to service the matmul request
  */
-bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64_t n, int64_t k,
+bool llamafile_sgemm(const struct lm_ggml_compute_params * params, int64_t m, int64_t n, int64_t k,
                      const void *A, int64_t lda, const void *B, int64_t ldb, void *C,
                      int64_t ldc, int Atype, int Btype, int Ctype) {
 
@@ -3692,13 +3692,13 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         return false;
 #endif
 
-    if (Ctype != GGML_TYPE_F32)
+    if (Ctype != LM_GGML_TYPE_F32)
         return false;
 
     switch (Atype) {
 
-    case GGML_TYPE_F32: {
-        if (Btype != GGML_TYPE_F32)
+    case LM_GGML_TYPE_F32: {
+        if (Btype != LM_GGML_TYPE_F32)
             return false;
 #if defined(__AVX512F__)
         tinyBLAS<16, __m512, __m512, float, float, float> tb{ params,
@@ -3761,28 +3761,28 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
 #endif
     }
 
-    case GGML_TYPE_BF16: {
+    case LM_GGML_TYPE_BF16: {
 #if defined(__AVX512BF16__)
-        if (Btype == GGML_TYPE_BF16) {
-            tinyBLAS<32, __m512, __m512bh, ggml_bf16_t, ggml_bf16_t, float> tb{ params, k,
-                (const ggml_bf16_t *)A, lda,
-                (const ggml_bf16_t *)B, ldb,
+        if (Btype == LM_GGML_TYPE_BF16) {
+            tinyBLAS<32, __m512, __m512bh, lm_ggml_bf16_t, lm_ggml_bf16_t, float> tb{ params, k,
+                (const lm_ggml_bf16_t *)A, lda,
+                (const lm_ggml_bf16_t *)B, ldb,
                 (float *)C, ldc};
             return tb.matmul(m, n);
         }
 #elif defined(__AVX512F__)
-        if (Btype == GGML_TYPE_BF16) {
-            tinyBLAS<16, __m512, __m512, ggml_bf16_t, ggml_bf16_t, float> tb{ params, k,
-                (const ggml_bf16_t *)A, lda,
-                (const ggml_bf16_t *)B, ldb,
+        if (Btype == LM_GGML_TYPE_BF16) {
+            tinyBLAS<16, __m512, __m512, lm_ggml_bf16_t, lm_ggml_bf16_t, float> tb{ params, k,
+                (const lm_ggml_bf16_t *)A, lda,
+                (const lm_ggml_bf16_t *)B, ldb,
                 (float *)C, ldc};
             return tb.matmul(m, n);
         }
 #elif defined(__AVX2__)
-        if (Btype == GGML_TYPE_BF16) {
-            tinyBLAS<8, __m256, __m256, ggml_bf16_t, ggml_bf16_t, float> tb{ params, k,
-                (const ggml_bf16_t *)A, lda,
-                (const ggml_bf16_t *)B, ldb,
+        if (Btype == LM_GGML_TYPE_BF16) {
+            tinyBLAS<8, __m256, __m256, lm_ggml_bf16_t, lm_ggml_bf16_t, float> tb{ params, k,
+                (const lm_ggml_bf16_t *)A, lda,
+                (const lm_ggml_bf16_t *)B, ldb,
                 (float *)C, ldc};
             return tb.matmul(m, n);
         }
@@ -3791,10 +3791,10 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             return false;
         }
 
-        if (Btype == GGML_TYPE_BF16) {
-            tinyBLAS_HP16_PPC<ggml_bf16_t, ggml_bf16_t, float> tb{ k,
-                (const ggml_bf16_t *)A, lda,
-                (const ggml_bf16_t *)B, ldb,
+        if (Btype == LM_GGML_TYPE_BF16) {
+            tinyBLAS_HP16_PPC<lm_ggml_bf16_t, lm_ggml_bf16_t, float> tb{ k,
+                (const lm_ggml_bf16_t *)A, lda,
+                (const lm_ggml_bf16_t *)B, ldb,
                 (float *)C, ldc,
                 params->ith, params->nth };
 
@@ -3803,19 +3803,19 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         }
 #elif defined(__riscv_zvfbfwma)
         #if LMUL == 1
-            tinyBLAS_RVV<vfloat32m1_t, vbfloat16mf2_t, ggml_bf16_t, ggml_bf16_t, float> tb{ params,
-                k, (const ggml_bf16_t *)A, lda,
-                (const ggml_bf16_t *)B, ldb,
+            tinyBLAS_RVV<vfloat32m1_t, vbfloat16mf2_t, lm_ggml_bf16_t, lm_ggml_bf16_t, float> tb{ params,
+                k, (const lm_ggml_bf16_t *)A, lda,
+                (const lm_ggml_bf16_t *)B, ldb,
                 (float *)C, ldc};
         #elif LMUL == 2
-            tinyBLAS_RVV<vfloat32m2_t, vbfloat16m1_t, ggml_bf16_t, ggml_bf16_t, float> tb{ params,
-                k, (const ggml_bf16_t *)A, lda,
-                (const ggml_bf16_t *)B, ldb,
+            tinyBLAS_RVV<vfloat32m2_t, vbfloat16m1_t, lm_ggml_bf16_t, lm_ggml_bf16_t, float> tb{ params,
+                k, (const lm_ggml_bf16_t *)A, lda,
+                (const lm_ggml_bf16_t *)B, ldb,
                 (float *)C, ldc};
         #else // LMUL = 4
-            tinyBLAS_RVV<vfloat32m4_t, vbfloat16m2_t, ggml_bf16_t, ggml_bf16_t, float> tb{ params,
-                k, (const ggml_bf16_t *)A, lda,
-                (const ggml_bf16_t *)B, ldb,
+            tinyBLAS_RVV<vfloat32m4_t, vbfloat16m2_t, lm_ggml_bf16_t, lm_ggml_bf16_t, float> tb{ params,
+                k, (const lm_ggml_bf16_t *)A, lda,
+                (const lm_ggml_bf16_t *)B, ldb,
                 (float *)C, ldc};
         #endif
             return tb.matmul(m, n);
@@ -3823,37 +3823,37 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         return false;
     }
 
-    case GGML_TYPE_F16: {
+    case LM_GGML_TYPE_F16: {
 #if defined(__AVX512F__)
-        if (Btype == GGML_TYPE_F16) {
-            tinyBLAS<16, __m512, __m512, ggml_fp16_t, ggml_fp16_t, float> tb{ params, k,
-                (const ggml_fp16_t *)A, lda,
-                (const ggml_fp16_t *)B, ldb,
+        if (Btype == LM_GGML_TYPE_F16) {
+            tinyBLAS<16, __m512, __m512, lm_ggml_fp16_t, lm_ggml_fp16_t, float> tb{ params, k,
+                (const lm_ggml_fp16_t *)A, lda,
+                (const lm_ggml_fp16_t *)B, ldb,
                 (float *)C, ldc};
             return tb.matmul(m, n);
         }
 #elif (defined(__AVX__) || defined(__AVX2__)) && defined(__F16C__)
-        if (Btype == GGML_TYPE_F16) {
-            tinyBLAS<8, __m256, __m256, ggml_fp16_t, ggml_fp16_t, float> tb{ params, k,
-                (const ggml_fp16_t *)A, lda,
-                (const ggml_fp16_t *)B, ldb,
+        if (Btype == LM_GGML_TYPE_F16) {
+            tinyBLAS<8, __m256, __m256, lm_ggml_fp16_t, lm_ggml_fp16_t, float> tb{ params, k,
+                (const lm_ggml_fp16_t *)A, lda,
+                (const lm_ggml_fp16_t *)B, ldb,
                 (float *)C, ldc};
             return tb.matmul(m, n);
         }
 #elif defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC) && !defined(_MSC_VER)
         if (n < 8)
             return false;
-        if (Btype == GGML_TYPE_F16) {
-            tinyBLAS<8, float16x8_t, float16x8_t, ggml_fp16_t, ggml_fp16_t, float> tb{ params,
-                k, (const ggml_fp16_t *)A, lda,
-                (const ggml_fp16_t *)B, ldb,
+        if (Btype == LM_GGML_TYPE_F16) {
+            tinyBLAS<8, float16x8_t, float16x8_t, lm_ggml_fp16_t, lm_ggml_fp16_t, float> tb{ params,
+                k, (const lm_ggml_fp16_t *)A, lda,
+                (const lm_ggml_fp16_t *)B, ldb,
                 (float *)C, ldc};
             return tb.matmul(m, n);
         }
 #elif defined(__ARM_NEON) && !defined(_MSC_VER)
-        if (Btype == GGML_TYPE_F32) {
-            tinyBLAS<4, float32x4_t, float32x4_t, ggml_fp16_t, float, float> tb{ params,
-                k, (const ggml_fp16_t *)A, lda,
+        if (Btype == LM_GGML_TYPE_F32) {
+            tinyBLAS<4, float32x4_t, float32x4_t, lm_ggml_fp16_t, float, float> tb{ params,
+                k, (const lm_ggml_fp16_t *)A, lda,
                 (const float *)B, ldb,
                 (float *)C, ldc};
             return tb.matmul(m, n);
@@ -3861,29 +3861,29 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
 #elif defined(__VXE__) || defined(__VXE2__)
         if (n < 4)
             return false;
-        if (Btype == GGML_TYPE_F16) {
-            tinyBLAS<4, float32x4_t, float32x4_t, ggml_fp16_t, ggml_fp16_t, float> tb{ params,
-                k, (const ggml_fp16_t *)A, lda,
-                (const ggml_fp16_t *)B, ldb,
+        if (Btype == LM_GGML_TYPE_F16) {
+            tinyBLAS<4, float32x4_t, float32x4_t, lm_ggml_fp16_t, lm_ggml_fp16_t, float> tb{ params,
+                k, (const lm_ggml_fp16_t *)A, lda,
+                (const lm_ggml_fp16_t *)B, ldb,
                 (float *)C, ldc};
             return tb.matmul(m, n);
         }
 #elif defined(__riscv_zvfh)
-        if (Btype == GGML_TYPE_F16) {
+        if (Btype == LM_GGML_TYPE_F16) {
         #if LMUL == 1
-            tinyBLAS_RVV<vfloat32m1_t, vfloat16mf2_t, ggml_fp16_t, ggml_fp16_t, float> tb{ params,
-                k, (const ggml_fp16_t *)A, lda,
-                (const ggml_fp16_t *)B, ldb,
+            tinyBLAS_RVV<vfloat32m1_t, vfloat16mf2_t, lm_ggml_fp16_t, lm_ggml_fp16_t, float> tb{ params,
+                k, (const lm_ggml_fp16_t *)A, lda,
+                (const lm_ggml_fp16_t *)B, ldb,
                 (float *)C, ldc};
         #elif LMUL == 2
-            tinyBLAS_RVV<vfloat32m2_t, vfloat16m1_t, ggml_fp16_t, ggml_fp16_t, float> tb{ params,
-                k, (const ggml_fp16_t *)A, lda,
-                (const ggml_fp16_t *)B, ldb,
+            tinyBLAS_RVV<vfloat32m2_t, vfloat16m1_t, lm_ggml_fp16_t, lm_ggml_fp16_t, float> tb{ params,
+                k, (const lm_ggml_fp16_t *)A, lda,
+                (const lm_ggml_fp16_t *)B, ldb,
                 (float *)C, ldc};
         #else // LMUL = 4
-            tinyBLAS_RVV<vfloat32m4_t, vfloat16m2_t, ggml_fp16_t, ggml_fp16_t, float> tb{ params,
-                k, (const ggml_fp16_t *)A, lda,
-                (const ggml_fp16_t *)B, ldb,
+            tinyBLAS_RVV<vfloat32m4_t, vfloat16m2_t, lm_ggml_fp16_t, lm_ggml_fp16_t, float> tb{ params,
+                k, (const lm_ggml_fp16_t *)A, lda,
+                (const lm_ggml_fp16_t *)B, ldb,
                 (float *)C, ldc};
         #endif
             return tb.matmul(m, n);
@@ -3893,10 +3893,10 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
             return false;
         }
 
-        if (Btype == GGML_TYPE_F16) {
-            tinyBLAS_HP16_PPC<ggml_fp16_t, ggml_fp16_t, float> tb{ k,
-                (const ggml_fp16_t *)A, lda,
-                (const ggml_fp16_t *)B, ldb,
+        if (Btype == LM_GGML_TYPE_F16) {
+            tinyBLAS_HP16_PPC<lm_ggml_fp16_t, lm_ggml_fp16_t, float> tb{ k,
+                (const lm_ggml_fp16_t *)A, lda,
+                (const lm_ggml_fp16_t *)B, ldb,
                 (float *)C, ldc,
                 params->ith, params->nth };
 
@@ -3907,8 +3907,8 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
         return false;
     }
 
-    case GGML_TYPE_Q8_0: {
-        if (Btype != GGML_TYPE_Q8_0)
+    case LM_GGML_TYPE_Q8_0: {
+        if (Btype != LM_GGML_TYPE_Q8_0)
            return false;
 #if defined(__AVX2__) || defined(__AVX512F__) || defined(__AVX__)
         tinyBLAS_Q0_AVX<block_q8_0, block_q8_0, float> tb{
@@ -3944,8 +3944,8 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
 #endif
     }
 
-    case GGML_TYPE_Q4_0: {
-        if (Btype != GGML_TYPE_Q8_0)
+    case LM_GGML_TYPE_Q4_0: {
+        if (Btype != LM_GGML_TYPE_Q8_0)
             return false;
 #if defined(__AVX2__) || defined(__AVX512F__) || defined(__AVX__)
         tinyBLAS_Q0_AVX<block_q4_0, block_q8_0, float> tb{
@@ -3981,8 +3981,8 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
 #endif
     }
 
-    case GGML_TYPE_Q5_0: {
-        if (Btype != GGML_TYPE_Q8_0)
+    case LM_GGML_TYPE_Q5_0: {
+        if (Btype != LM_GGML_TYPE_Q8_0)
             return false;
 #if defined(__AVX2__) || defined(__AVX512F__) || defined(__AVX__)
         tinyBLAS_Q0_AVX<block_q5_0, block_q8_0, float> tb{
@@ -3997,8 +3997,8 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
 #endif
     }
 
-    case GGML_TYPE_IQ4_NL: {
-        if (Btype != GGML_TYPE_Q8_0)
+    case LM_GGML_TYPE_IQ4_NL: {
+        if (Btype != LM_GGML_TYPE_Q8_0)
             return false;
 #if defined(__AVX2__) || defined(__AVX512F__) || defined(__AVX__)
         tinyBLAS_Q0_AVX<block_iq4_nl, block_q8_0, float> tb{

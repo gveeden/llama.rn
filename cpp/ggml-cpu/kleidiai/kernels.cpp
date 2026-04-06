@@ -36,7 +36,7 @@
 
 #include "simd-mappings.h"
 
-#define GGML_COMMON_DECL_CPP
+#define LM_GGML_COMMON_DECL_CPP
 #include "ggml-common.h"
 
 #include "kernels.h"
@@ -195,7 +195,7 @@ static void dequantize_row_qsi4c32pscalef16(
 
     for (size_t b = 0; b < num_blocks; ++b) {
         uint16_t scale_f16 = *((const uint16_t *)(block_ptr + row_in_group * num_bytes_multiplier));
-        float scale = GGML_CPU_FP16_TO_FP32(scale_f16);
+        float scale = LM_GGML_CPU_FP16_TO_FP32(scale_f16);
 
         const uint8_t *segment_ptr = block_ptr + nr_pack * num_bytes_multiplier;
         size_t num_segments = bl / kr;
@@ -239,7 +239,7 @@ static void dequantize_row_qsi4c32ps1s0scalef16(
 
     for (size_t block_idx = 0; block_idx < num_blocks; ++block_idx) {
         uint16_t scale_f16 = scales[row_in_group + block_idx * nr];
-        float scale = GGML_CPU_FP16_TO_FP32(scale_f16);
+        float scale = LM_GGML_CPU_FP16_TO_FP32(scale_f16);
 
         for (size_t bl4_idx = 0; bl4_idx < bl4; ++bl4_idx) {
             uint16_t q = qdata[(block_idx * bl4 + bl4_idx) * nr + row_in_group];
@@ -250,7 +250,7 @@ static void dequantize_row_qsi4c32ps1s0scalef16(
             }
         }
     }
-    GGML_UNUSED(kr);
+    LM_GGML_UNUSED(kr);
 }
 
 static void dequantize_row_qsi8cxp(
@@ -264,8 +264,8 @@ static void dequantize_row_qsi8cxp(
     size_t bl,
     size_t num_bytes_multiplier
 ) {
-    GGML_UNUSED(bl);
-    GGML_UNUSED(num_bytes_multiplier);
+    LM_GGML_UNUSED(bl);
+    LM_GGML_UNUSED(num_bytes_multiplier);
 
     const size_t k_internal = ((size_t) k + QK8_0 - 1) / QK8_0 * QK8_0;
     const size_t group_idx = row_idx / nr;
@@ -287,7 +287,7 @@ static void dequantize_row_qsi8cxp(
     }
 
     const uint8_t * sums_ptr = group_ptr + nr * k_internal;
-    GGML_UNUSED(sums_ptr);
+    LM_GGML_UNUSED(sums_ptr);
 
     const float * scale_ptr = reinterpret_cast<const float *>(sums_ptr + nr * sizeof(int32_t));
     const float scale = scale_ptr[row_in_group];
@@ -304,7 +304,7 @@ static void dequantize_row_qsi8cxp(
     }
 }
 
-static ggml_kleidiai_kernels gemm_gemv_kernels[] = {
+static lm_ggml_kleidiai_kernels gemm_gemv_kernels[] = {
 #if defined(__ARM_FEATURE_SME)
     {
         /* SME GEMM */
@@ -356,9 +356,9 @@ static ggml_kleidiai_kernels gemm_gemv_kernels[] = {
             /* .pack_func_ex          = */ &rhs_pack_fn12<kai_run_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon>,
         },
         /* .required_cpu       = */ CPU_FEATURE_SME,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_Q4_0,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_Q4_0,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
     {
         /* SME GEMM */
@@ -409,9 +409,9 @@ static ggml_kleidiai_kernels gemm_gemv_kernels[] = {
             /* .pack_func_ex          = */ &rhs_pack_fn13<kai_run_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme>,
         },
         /* .required_cpu       = */ CPU_FEATURE_SME,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_F16,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_F16,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
 #endif
 #if defined(__APPLE__)
@@ -465,9 +465,9 @@ static ggml_kleidiai_kernels gemm_gemv_kernels[] = {
             /* .pack_func_ex          = */ &rhs_pack_fn12<kai_run_rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0>,
         },
         /* .required_cpu       = */ CPU_FEATURE_DOTPROD,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_Q4_0,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_Q4_0,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
 #endif
 #if defined(__ARM_FEATURE_MATMUL_INT8)
@@ -520,9 +520,9 @@ static ggml_kleidiai_kernels gemm_gemv_kernels[] = {
             /* .pack_func_ex          = */ &rhs_pack_fn12<kai_run_rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0>,
         },
         /* .required_cpu       = */ CPU_FEATURE_DOTPROD | CPU_FEATURE_I8MM,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_Q4_0,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_Q4_0,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
 #endif
 #else
@@ -576,9 +576,9 @@ static ggml_kleidiai_kernels gemm_gemv_kernels[] = {
             /* .pack_func_ex          = */ &rhs_pack_fn12<kai_run_rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0>,
         },
         /* .required_cpu       = */ CPU_FEATURE_SVE | CPU_FEATURE_I8MM | CPU_FEATURE_DOTPROD,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_Q4_0,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_Q4_0,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
 #endif
 #if defined(__ARM_FEATURE_MATMUL_INT8)
@@ -631,9 +631,9 @@ static ggml_kleidiai_kernels gemm_gemv_kernels[] = {
             /* .pack_func_ex          = */ &rhs_pack_fn12<kai_run_rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0>,
         },
         /* .required_cpu       = */ CPU_FEATURE_DOTPROD | CPU_FEATURE_I8MM,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_Q4_0,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_Q4_0,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
 #endif // __ARM_FEATURE_MATMUL_INT8
 #if defined(__ARM_FEATURE_DOTPROD)
@@ -686,16 +686,16 @@ static ggml_kleidiai_kernels gemm_gemv_kernels[] = {
             /* .pack_func_ex          = */ &rhs_pack_fn12<kai_run_rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0>,
         },
         /* .required_cpu       = */ CPU_FEATURE_DOTPROD,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_Q4_0,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_Q4_0,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
 #endif
 #endif
     { /* Sentinel */ }
 };
 
-static ggml_kleidiai_kernels gemm_gemv_kernels_q8[] = {
+static lm_ggml_kleidiai_kernels gemm_gemv_kernels_q8[] = {
 #if defined(__ARM_FEATURE_SME)
     {
         /* SME GEMM */
@@ -746,9 +746,9 @@ static ggml_kleidiai_kernels gemm_gemv_kernels_q8[] = {
             /* .pack_func_ex          = */ &rhs_pack_scale_fn12<kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon>,
         },
         /* .required_cpu       = */ CPU_FEATURE_SME,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_Q8_0,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_Q8_0,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
 #endif
 #if defined(__ARM_FEATURE_MATMUL_INT8)
@@ -801,9 +801,9 @@ static ggml_kleidiai_kernels gemm_gemv_kernels_q8[] = {
             /* .pack_func_ex          = */ &rhs_pack_scale_fn12<kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon>,
         },
         /* .required_cpu       = */ CPU_FEATURE_DOTPROD | CPU_FEATURE_I8MM,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_Q8_0,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_Q8_0,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
 #endif
 #if defined(__ARM_FEATURE_DOTPROD)
@@ -856,18 +856,18 @@ static ggml_kleidiai_kernels gemm_gemv_kernels_q8[] = {
             /* .pack_func_ex          = */ &rhs_pack_scale_fn12<kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon>,
         },
         /* .required_cpu       = */ CPU_FEATURE_DOTPROD,
-        /* .lhs_type           = */ GGML_TYPE_F32,
-        /* .rhs_type           = */ GGML_TYPE_Q8_0,
-        /* .op_type            = */ GGML_TYPE_F32,
+        /* .lhs_type           = */ LM_GGML_TYPE_F32,
+        /* .rhs_type           = */ LM_GGML_TYPE_Q8_0,
+        /* .op_type            = */ LM_GGML_TYPE_F32,
     },
 #endif
     { /* Sentinel */ }
 };
 
-ggml_kleidiai_kernels * ggml_kleidiai_select_kernels(cpu_feature cpu_features, const ggml_tensor * tensor) {
-    ggml_kleidiai_kernels * kernel = nullptr;
+lm_ggml_kleidiai_kernels * lm_ggml_kleidiai_select_kernels(cpu_feature cpu_features, const lm_ggml_tensor * tensor) {
+    lm_ggml_kleidiai_kernels * kernel = nullptr;
 
-    if (tensor->op == GGML_OP_MUL_MAT && tensor->src[0] != nullptr && tensor->src[1] != nullptr) {
+    if (tensor->op == LM_GGML_OP_MUL_MAT && tensor->src[0] != nullptr && tensor->src[1] != nullptr) {
 #if defined(__ARM_FEATURE_SME)          ||  \
     defined(__ARM_FEATURE_DOTPROD)      ||  \
     defined(__ARM_FEATURE_MATMUL_INT8)  ||  \
@@ -885,23 +885,23 @@ ggml_kleidiai_kernels * ggml_kleidiai_select_kernels(cpu_feature cpu_features, c
             return false;
         };
 
-        if (tensor->src[0]->type == GGML_TYPE_Q8_0) {
+        if (tensor->src[0]->type == LM_GGML_TYPE_Q8_0) {
             try_table(gemm_gemv_kernels_q8);
         } else {
             try_table(gemm_gemv_kernels);
         }
 #else
-    GGML_UNUSED(gemm_gemv_kernels);
-    GGML_UNUSED(gemm_gemv_kernels_q8);
-    GGML_UNUSED(cpu_features);
+    LM_GGML_UNUSED(gemm_gemv_kernels);
+    LM_GGML_UNUSED(gemm_gemv_kernels_q8);
+    LM_GGML_UNUSED(cpu_features);
 #endif
     }
 
     return kernel;
 }
 
-ggml_kleidiai_kernels * ggml_kleidiai_select_kernels_q4_0(cpu_feature features) {
-    ggml_kleidiai_kernels * kernels = nullptr;
+lm_ggml_kleidiai_kernels * lm_ggml_kleidiai_select_kernels_q4_0(cpu_feature features) {
+    lm_ggml_kleidiai_kernels * kernels = nullptr;
 
 #if defined(__ARM_FEATURE_SME)          ||  \
     defined(__ARM_FEATURE_DOTPROD)      ||  \
@@ -914,14 +914,14 @@ ggml_kleidiai_kernels * ggml_kleidiai_select_kernels_q4_0(cpu_feature features) 
         }
     }
 #else
-    GGML_UNUSED(features);
+    LM_GGML_UNUSED(features);
 #endif
 
     return kernels;
 }
 
-ggml_kleidiai_kernels * ggml_kleidiai_select_kernels_q8_0(cpu_feature features) {
-    ggml_kleidiai_kernels * kernels = nullptr;
+lm_ggml_kleidiai_kernels * lm_ggml_kleidiai_select_kernels_q8_0(cpu_feature features) {
+    lm_ggml_kleidiai_kernels * kernels = nullptr;
 
 #if defined(__ARM_FEATURE_SME) || defined(__ARM_FEATURE_DOTPROD) || defined(__ARM_FEATURE_MATMUL_INT8)
     for (size_t i = 0; i < NELEMS(gemm_gemv_kernels_q8) - 1; ++i) {
@@ -931,7 +931,7 @@ ggml_kleidiai_kernels * ggml_kleidiai_select_kernels_q8_0(cpu_feature features) 
         }
     }
 #else
-    GGML_UNUSED(features);
+    LM_GGML_UNUSED(features);
 #endif
 
     return kernels;

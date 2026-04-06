@@ -53,23 +53,7 @@ cp -r "$LLAMA_DIR"/vendor/nlohmann "$CPP_DIR"/nlohmann
 
 # 6. Apply Prefixing
 echo "🔄 Applying LM_ prefix to symbols..."
-files_add_lm_prefix=(
-  ./cpp/ggml-metal/*.cpp
-  ./cpp/ggml-metal/*.h
-  ./cpp/ggml-metal/*.m
-  ./cpp/ggml-metal/*.metal
-  ./cpp/ggml-cpu/*.h
-  ./cpp/ggml-cpu/*.c
-  ./cpp/ggml-cpu/*.cpp
-  ./cpp/*.h
-  ./cpp/*.cpp
-  ./cpp/*.c
-  ./cpp/common/*.h
-  ./cpp/common/*.cpp
-)
-
-for file in "${files_add_lm_prefix[@]}"; do
-  if [ ! -f "$file" ]; then continue; fi
+while IFS= read -r -d '' file; do
   if [[ $file == *"/cpp/rn-"* ]]; then continue; fi
 
   if [ "$OS" = "Darwin" ]; then
@@ -89,7 +73,12 @@ for file in "${files_add_lm_prefix[@]}"; do
     sed -i "s|<nlohmann/json.hpp>|"nlohmann/json.hpp"|g" "$file"
     sed -i "s|<nlohmann/json_fwd.hpp>|"nlohmann/json_fwd.hpp"|g" "$file"
   fi
-done
+done < <(find ./cpp/ggml-metal ./cpp/ggml-cpu ./cpp/common \
+    \( -name "*.cpp" -o -name "*.h" -o -name "*.c" -o -name "*.m" -o -name "*.metal" \) \
+    -print0 2>/dev/null; \
+  find ./cpp -maxdepth 1 \
+    \( -name "*.cpp" -o -name "*.h" -o -name "*.c" \) \
+    -print0 2>/dev/null)
 
 # 7. Get version info
 cd "$LLAMA_DIR"

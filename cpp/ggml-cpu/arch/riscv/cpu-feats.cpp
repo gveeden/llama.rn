@@ -21,11 +21,11 @@ struct riscv64_features {
     }
 };
 
-static int ggml_backend_cpu_riscv64_score() {
+static int lm_ggml_backend_cpu_riscv64_score() {
     int score = 1;
     riscv64_features rf;
 
-#ifdef GGML_USE_RVV
+#ifdef LM_GGML_USE_RVV
     if (!rf.has_rvv) { return 0; }
     score += 1 << 1;
 #endif
@@ -33,6 +33,6 @@ static int ggml_backend_cpu_riscv64_score() {
     return score;
 }
 
-GGML_BACKEND_DL_SCORE_IMPL(ggml_backend_cpu_riscv64_score)
+LM_GGML_BACKEND_DL_SCORE_IMPL(lm_ggml_backend_cpu_riscv64_score)
 
 #endif  // __riscv && __riscv_xlen == 64

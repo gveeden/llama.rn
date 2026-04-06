@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-ggml_backend_buffer_type_t ggml_backend_cpu_kleidiai_buffer_type(void);
+lm_ggml_backend_buffer_type_t lm_ggml_backend_cpu_kleidiai_buffer_type(void);
 
 #ifdef  __cplusplus
 }
