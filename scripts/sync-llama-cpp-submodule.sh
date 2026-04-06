@@ -41,6 +41,17 @@ cp "$LLAMA_DIR"/src/unicode-data.{h,cpp} "$CPP_DIR"/
 mkdir -p "$CPP_DIR"/models
 cp "$LLAMA_DIR"/src/models/models.h "$CPP_DIR"/models/
 
+# 3a. Copy MTMD (multimodal) tools required by rn-mtmd.hpp
+echo "📦 Copying MTMD tools..."
+mkdir -p "$CPP_DIR/tools/mtmd"
+cp "$LLAMA_DIR"/tools/mtmd/mtmd.{h,cpp} "$CPP_DIR/tools/mtmd/"
+cp "$LLAMA_DIR"/tools/mtmd/mtmd-helper.{h,cpp} "$CPP_DIR/tools/mtmd/"
+cp "$LLAMA_DIR"/tools/mtmd/mtmd-audio.{h,cpp} "$CPP_DIR/tools/mtmd/"
+cp "$LLAMA_DIR"/tools/mtmd/clip.{h,cpp} "$CPP_DIR/tools/mtmd/"
+cp "$LLAMA_DIR"/tools/mtmd/clip-graph.h "$CPP_DIR/tools/mtmd/"
+cp "$LLAMA_DIR"/tools/mtmd/clip-impl.h "$CPP_DIR/tools/mtmd/"
+cp "$LLAMA_DIR"/tools/mtmd/clip-model.h "$CPP_DIR/tools/mtmd/"
+
 # 3. Copy Hardware Backends
 echo "📦 Copying Hardware Backends..."
 if [ -d "$LLAMA_DIR/ggml/src/ggml-metal" ]; then
@@ -99,7 +110,7 @@ while IFS= read -r -d '' file; do
     sed -i 's|<nlohmann/json.hpp>|"nlohmann/json.hpp"|g' "$file"
     sed -i 's|<nlohmann/json_fwd.hpp>|"nlohmann/json_fwd.hpp"|g' "$file"
   fi
-done < <(find ./cpp/ggml-metal ./cpp/ggml-cpu ./cpp/common ./cpp/models \
+done < <(find ./cpp/ggml-metal ./cpp/ggml-cpu ./cpp/common ./cpp/models ./cpp/tools \
     \( -name "*.cpp" -o -name "*.h" -o -name "*.c" -o -name "*.m" -o -name "*.metal" \) \
     -print0 2>/dev/null; \
   find ./cpp -maxdepth 1 \

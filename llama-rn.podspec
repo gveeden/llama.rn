@@ -32,7 +32,7 @@ Pod::Spec.new do |s|
     s.exclude_files = [
       "cpp/ggml-opencl/*.{c,cpp}",
       "cpp/ggml-hexagon/**/*.{c,cpp}",
-      "cpp/tools/mtmd/debug/*.cpp",
+      "cpp/tools/mtmd/mtmd-cli.cpp",
       "cpp/ggml-cpu/kleidiai/**/*",
       "cpp/ggml-cpu/spacemit/**/*",
       "cpp/models/**/*.cpp",
@@ -43,6 +43,7 @@ Pod::Spec.new do |s|
     base_compiler_flags += " -DRNLLAMA_BUILD_FROM_SOURCE"
     header_search_paths << '"$(PODS_TARGET_SRCROOT)/cpp"'
     header_search_paths << '"${PODS_TARGET_SRCROOT}/cpp/common"'
+    header_search_paths << '"${PODS_TARGET_SRCROOT}/cpp/tools"'
   else
     # JSI bindings always compiled from source (must match RN version)
     s.source_files = "ios/*.{h,m,mm}", "cpp/jsi/**/*.{h,cpp}"
