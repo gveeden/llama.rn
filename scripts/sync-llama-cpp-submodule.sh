@@ -18,7 +18,7 @@ rm -f "$CPP_DIR"/ggml*.c "$CPP_DIR"/ggml*.h "$CPP_DIR"/ggml*.cpp
 rm -f "$CPP_DIR"/gguf*.h "$CPP_DIR"/gguf*.cpp
 rm -f "$CPP_DIR"/llama*.h "$CPP_DIR"/llama*.cpp
 rm -f "$CPP_DIR"/unicode*.h "$CPP_DIR"/unicode*.cpp
-rm -f "$CPP_DIR"/anyascii*.h "$CPP_DIR"/anyascii*.c
+# anyascii is a vendored lib used by rn-tts.cpp — do not delete it
 rm -rf "$CPP_DIR"/common "$CPP_DIR"/ggml-cpu "$CPP_DIR"/ggml-metal
 rm -rf "$CPP_DIR"/models "$CPP_DIR"/tools
 
