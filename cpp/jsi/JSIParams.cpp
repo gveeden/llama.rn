@@ -112,20 +112,7 @@ namespace rnllama_jsi {
 
         // Model path
         cparams.model.path = getPropertyAsString(runtime, params, "model");
-        cparams.vocab_only = getPropertyAsBool(runtime, params, "vocab_only", false);
-        if (cparams.vocab_only) {
-            cparams.warmup = false;
-        }
-
         cparams.n_ctx = getPropertyAsInt(runtime, params, "n_ctx", cparams.n_ctx);
-
-        // For vocab_only models, ensure n_ctx is set because:
-        // 1. vocab_only models have n_ctx_train = 0 (no tensors loaded)
-        // 2. Context creation fails if both n_ctx and n_ctx_train are 0
-        // Use 512 as a minimal default - sufficient for tokenization
-        if (cparams.vocab_only && cparams.n_ctx == 0) {
-            cparams.n_ctx = 512;
-        }
         cparams.n_batch = getPropertyAsInt(runtime, params, "n_batch", cparams.n_batch);
         cparams.n_ubatch = getPropertyAsInt(runtime, params, "n_ubatch", cparams.n_ubatch);
         cparams.n_parallel = getPropertyAsInt(runtime, params, "n_parallel", cparams.n_parallel);
@@ -277,54 +264,18 @@ namespace rnllama_jsi {
         sparams.top_n_sigma = getPropertyAsDouble(runtime, params, "top_n_sigma", sparams.top_n_sigma);
 
         // Grammar
-        sparams.grammar = {};
-        sparams.generation_prompt.clear();
+        sparams.grammar = "";
         sparams.grammar_triggers.clear();
         sparams.preserved_tokens.clear();
-        sparams.reasoning_budget_tokens = -1;
-        sparams.reasoning_budget_activate_immediately = false;
-        sparams.reasoning_budget_start.clear();
-        sparams.reasoning_budget_end.clear();
-        sparams.reasoning_budget_forced.clear();
 
         std::string grammar = getPropertyAsString(runtime, params, "grammar");
         if (!grammar.empty()) {
-            sparams.grammar = {COMMON_GRAMMAR_TYPE_USER, std::move(grammar)};
+            sparams.grammar = std::move(grammar);
         }
 
         std::string jsonSchema = getPropertyAsString(runtime, params, "json_schema");
         if (!jsonSchema.empty() && sparams.grammar.empty()) {
-            sparams.grammar = {COMMON_GRAMMAR_TYPE_OUTPUT_FORMAT, json_schema_to_grammar(json::parse(jsonSchema))};
-        }
-
-        sparams.generation_prompt = getPropertyAsString(runtime, params, "generation_prompt");
-
-        const int thinkingBudgetTokens = getPropertyAsInt(runtime, params, "thinking_budget_tokens", -1);
-        if (thinkingBudgetTokens >= 0) {
-            const std::string thinkingEndTag = getPropertyAsString(runtime, params, "thinking_end_tag");
-            if (!thinkingEndTag.empty()) {
-                const std::string thinkingStartTag = getPropertyAsString(runtime, params, "thinking_start_tag");
-                const std::string thinkingBudgetMessage = getPropertyAsString(runtime, params, "thinking_budget_message");
-
-                if (!thinkingStartTag.empty()) {
-                    sparams.reasoning_budget_start = common_tokenize(
-                        ctx->ctx, thinkingStartTag, /* add_special= */ false, /* parse_special= */ true);
-                }
-                sparams.reasoning_budget_end = common_tokenize(
-                    ctx->ctx, thinkingEndTag, /* add_special= */ false, /* parse_special= */ true);
-                sparams.reasoning_budget_forced = common_tokenize(
-                    ctx->ctx, thinkingBudgetMessage + thinkingEndTag, /* add_special= */ false, /* parse_special= */ true);
-
-                if (!sparams.reasoning_budget_end.empty() && !sparams.reasoning_budget_forced.empty()) {
-                    sparams.reasoning_budget_tokens = thinkingBudgetTokens;
-                    sparams.reasoning_budget_activate_immediately = getPropertyAsBool(
-                        runtime, params, "thinking_forced_open", false);
-                } else {
-                    sparams.reasoning_budget_start.clear();
-                    sparams.reasoning_budget_end.clear();
-                    sparams.reasoning_budget_forced.clear();
-                }
-            }
+            sparams.grammar = json_schema_to_grammar(json::parse(jsonSchema));
         }
 
         sparams.grammar_lazy = getPropertyAsBool(runtime, params, "grammar_lazy", false);
