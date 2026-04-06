@@ -51,6 +51,19 @@ cp -r "$LLAMA_DIR"/common/*.h "$CPP_DIR"/common/
 cp -r "$LLAMA_DIR"/common/*.cpp "$CPP_DIR"/common/
 if [ -d "$LLAMA_DIR/common/jinja" ]; then
     cp -r "$LLAMA_DIR/common/jinja" "$CPP_DIR/common/jinja"
+    # Rename jinja/string.h to avoid shadowing the system <string.h> via CocoaPods header maps
+    if [ -f "$CPP_DIR/common/jinja/string.h" ]; then
+        mv "$CPP_DIR/common/jinja/string.h" "$CPP_DIR/common/jinja/jinja-string.h"
+        mv "$CPP_DIR/common/jinja/string.cpp" "$CPP_DIR/common/jinja/jinja-string.cpp"
+        # Update the one include reference
+        if [ "$OS" = "Darwin" ]; then
+            sed -i "" 's|#include "string.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/value.h"
+            sed -i "" 's|#include "string.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/jinja-string.cpp"
+        else
+            sed -i 's|#include "string.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/value.h"
+            sed -i 's|#include "string.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/jinja-string.cpp"
+        fi
+    fi
 fi
 
 # 5. Copy Vendors

@@ -38,7 +38,6 @@ Pod::Spec.new do |s|
       "cpp/models/**/*.cpp",
       "cpp/common/http.{h,cpp}",
       "cpp/common/download.{h,cpp}",
-      "cpp/common/jinja/*.h",
     ]
     s.resources = "cpp/ggml-metal/ggml-metal.metal"
     base_compiler_flags += " -DRNLLAMA_BUILD_FROM_SOURCE"
@@ -51,9 +50,8 @@ Pod::Spec.new do |s|
     base_compiler_flags += " -DRNLLAMA_USE_FRAMEWORK_HEADERS"
   end
 
-  # Header-only JSON dependency needed by JSI when using the prebuilt xcframework.
-  # jinja headers excluded from source_files to prevent string.h shadowing libc++ headers via CocoaPods header maps.
-  s.preserve_paths = "cpp/nlohmann/**/*.{h,hpp}", "cpp/common/jinja/*.h"
+  # Header-only JSON dependency needed by JSI when using the prebuilt xcframework
+  s.preserve_paths = "cpp/nlohmann/**/*.{h,hpp}"
 
   s.compiler_flags = base_compiler_flags
   pod_target_xcconfig = {
