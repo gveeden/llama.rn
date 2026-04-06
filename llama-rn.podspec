@@ -41,7 +41,6 @@ Pod::Spec.new do |s|
       "cpp/ggml-cpu/arch/s390/**/*",
       "cpp/ggml-cpu/arch/wasm/**/*",
       "cpp/ggml-cpu/arch/powerpc/**/*",
-      "cpp/models/**/*.cpp",
       "cpp/common/http.{h,cpp}",
       "cpp/common/download.{h,cpp}",
     ]
