@@ -23,6 +23,7 @@ cp "$LLAMA_DIR"/ggml/src/ggml*.c "$CPP_DIR"/
 cp "$LLAMA_DIR"/ggml/src/ggml*.h "$CPP_DIR"/
 cp "$LLAMA_DIR"/ggml/src/ggml*.cpp "$CPP_DIR"/
 cp "$LLAMA_DIR"/ggml/include/ggml*.h "$CPP_DIR"/
+cp "$LLAMA_DIR"/ggml/include/gguf*.h "$CPP_DIR"/
 
 # 2. Copy Llama core
 echo "📦 Copying Llama core..."
