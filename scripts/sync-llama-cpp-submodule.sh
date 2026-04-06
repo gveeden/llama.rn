@@ -87,6 +87,10 @@ fi
 echo "📦 Copying Vendors..."
 rm -rf "$CPP_DIR"/nlohmann
 cp -r "$LLAMA_DIR"/vendor/nlohmann "$CPP_DIR"/nlohmann
+# miniaudio and stb are required by tools/mtmd/mtmd-helper.cpp
+mkdir -p "$CPP_DIR/tools/mtmd/miniaudio" "$CPP_DIR/tools/mtmd/stb"
+cp "$LLAMA_DIR/vendor/miniaudio/miniaudio.h" "$CPP_DIR/tools/mtmd/miniaudio/"
+cp "$LLAMA_DIR/vendor/stb/stb_image.h" "$CPP_DIR/tools/mtmd/stb/"
 
 # 6. Apply Prefixing
 echo "🔄 Applying LM_ prefix to symbols..."
