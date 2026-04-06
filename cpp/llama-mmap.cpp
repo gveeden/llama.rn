@@ -86,14 +86,6 @@ struct llama_file::impl {
         seek(0, SEEK_SET);
     }
 
-    impl(FILE * file) : owns_fp(false) {
-        fp = file;
-        fp_win32 = (HANDLE) _get_osfhandle(_fileno(fp));
-        seek(0, SEEK_END);
-        size = tell();
-        seek(0, SEEK_SET);
-    }
-
     size_t tell() const {
         LARGE_INTEGER li;
         li.QuadPart = 0;
@@ -167,7 +159,7 @@ struct llama_file::impl {
     }
 
     ~impl() {
-        if (fp && owns_fp) {
+        if (fp) {
             std::fclose(fp);
         }
     }
@@ -212,13 +204,6 @@ struct llama_file::impl {
         if (fp == NULL) {
             throw std::runtime_error(format("failed to open %s: %s", fname.c_str(), strerror(errno)));
         }
-        seek(0, SEEK_END);
-        size = tell();
-        seek(0, SEEK_SET);
-    }
-
-    impl(FILE * file) : fname("(file*)"), owns_fp(false) {
-        fp = file;
         seek(0, SEEK_END);
         size = tell();
         seek(0, SEEK_SET);
@@ -368,7 +353,7 @@ struct llama_file::impl {
     ~impl() {
         if (fd != -1) {
             close(fd);
-        } else if (owns_fp) {
+        } else {
             std::fclose(fp);
         }
     }
@@ -384,14 +369,10 @@ struct llama_file::impl {
 
     FILE * fp{};
     size_t size{};
-    bool owns_fp = true;
 };
 
 llama_file::llama_file(const char * fname, const char * mode, const bool use_direct_io) :
     pimpl(std::make_unique<impl>(fname, mode, use_direct_io)) {}
-
-llama_file::llama_file(FILE * file) : pimpl(std::make_unique<impl>(file)) {}
-
 llama_file::~llama_file() = default;
 
 size_t llama_file::tell() const { return pimpl->tell(); }
@@ -452,14 +433,14 @@ struct llama_mmap::impl {
         }
 
         if (prefetch > 0) {
-            if (madvise(addr, std::min(file->size(), prefetch), MADV_WILLNEED)) {
-                fprintf(stderr, "warning: madvise(.., MADV_WILLNEED) failed: %s\n",
+            if (posix_madvise(addr, std::min(file->size(), prefetch), POSIX_MADV_WILLNEED)) {
+                LLAMA_LOG_WARN("warning: posix_madvise(.., POSIX_MADV_WILLNEED) failed: %s\n",
                         strerror(errno));
             }
         }
         if (numa) {
-            if (madvise(addr, file->size(), MADV_RANDOM)) {
-                fprintf(stderr, "warning: madvise(.., MADV_RANDOM) failed: %s\n",
+            if (posix_madvise(addr, file->size(), POSIX_MADV_RANDOM)) {
+                LLAMA_LOG_WARN("warning: posix_madvise(.., POSIX_MADV_RANDOM) failed: %s\n",
                         strerror(errno));
             }
         }

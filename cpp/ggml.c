@@ -1,14 +1,6 @@
 #define _CRT_SECURE_NO_DEPRECATE // Disables "unsafe" warnings on Windows
 #define _USE_MATH_DEFINES // For M_PI on MSVC
 
-// GGML build info
-#ifndef LM_GGML_VERSION
-#define LM_GGML_VERSION "unknown"
-#endif
-#ifndef LM_GGML_COMMIT
-#define LM_GGML_COMMIT "unknown"
-#endif
-
 #include "ggml-backend.h"
 #include "ggml-impl.h"
 #include "ggml-threading.h"
@@ -137,9 +129,9 @@ static void lm_ggml_print_backtrace_symbols(void) {
 #elif defined(__APPLE__)
 #include <execinfo.h>
 static void lm_ggml_print_backtrace_symbols(void) {
-    // void * trace[100];
-    // int nptrs = backtrace(trace, sizeof(trace)/sizeof(trace[0]));
-    // backtrace_symbols_fd(trace, nptrs, STDERR_FILENO);
+    void * trace[100];
+    int nptrs = backtrace(trace, sizeof(trace)/sizeof(trace[0]));
+    backtrace_symbols_fd(trace, nptrs, STDERR_FILENO);
 }
 #else
 static void lm_ggml_print_backtrace_symbols(void) {
@@ -659,6 +651,22 @@ static const struct lm_ggml_type_traits type_traits[LM_GGML_TYPE_COUNT] = {
         .to_float                 = (lm_ggml_to_float_t) lm_ggml_fp16_to_fp32_row,
         .from_float_ref           = (lm_ggml_from_float_t) lm_ggml_fp32_to_fp16_row,
     },
+    [LM_GGML_TYPE_Q1_0] = {
+        .type_name                = "q1_0",
+        .blck_size                = QK1_0,
+        .type_size                = sizeof(block_q1_0),
+        .is_quantized             = true,
+        .to_float                 = (lm_ggml_to_float_t) dequantize_row_q1_0,
+        .from_float_ref           = (lm_ggml_from_float_t) quantize_row_q1_0_ref,
+    },
+    [LM_GGML_TYPE_Q1_0_g128] = {
+        .type_name                = "q1_0_g128",
+        .blck_size                = QK1_0_g128,
+        .type_size                = sizeof(block_q1_0_g128),
+        .is_quantized             = true,
+        .to_float                 = (lm_ggml_to_float_t) dequantize_row_q1_0_g128,
+        .from_float_ref           = (lm_ggml_from_float_t) quantize_row_q1_0_g128_ref,
+    },
     [LM_GGML_TYPE_Q4_0] = {
         .type_name                = "q4_0",
         .blck_size                = QK4_0,
@@ -725,14 +733,6 @@ static const struct lm_ggml_type_traits type_traits[LM_GGML_TYPE_COUNT] = {
         .is_quantized             = true,
         .to_float                 = (lm_ggml_to_float_t) dequantize_row_mxfp4,
         .from_float_ref           = (lm_ggml_from_float_t)quantize_row_mxfp4_ref,
-    },
-    [LM_GGML_TYPE_NVFP4] = {
-        .type_name                = "nvfp4",
-        .blck_size                = QK_NVFP4,
-        .type_size                = sizeof(block_nvfp4),
-        .is_quantized             = true,
-        .to_float                 = (lm_ggml_to_float_t) dequantize_row_nvfp4,
-        .from_float_ref           = (lm_ggml_from_float_t)quantize_row_nvfp4_ref,
     },
     [LM_GGML_TYPE_Q2_K] = {
         .type_name                = "q2_K",
@@ -1047,7 +1047,6 @@ static const char * LM_GGML_OP_NAME[LM_GGML_OP_COUNT] = {
     "GATED_LINEAR_ATTN",
     "RWKV_WKV7",
     "SOLVE_TRI",
-    "GATED_DELTA_NET",
 
     "UNARY",
 
@@ -1065,7 +1064,7 @@ static const char * LM_GGML_OP_NAME[LM_GGML_OP_COUNT] = {
     "GLU",
 };
 
-static_assert(LM_GGML_OP_COUNT == 96, "LM_GGML_OP_COUNT != 96");
+static_assert(LM_GGML_OP_COUNT == 95, "LM_GGML_OP_COUNT != 95");
 
 static const char * LM_GGML_OP_SYMBOL[LM_GGML_OP_COUNT] = {
     "none",
@@ -1157,7 +1156,6 @@ static const char * LM_GGML_OP_SYMBOL[LM_GGML_OP_COUNT] = {
     "gated_linear_attn(k, v, q, gate, s)",
     "rwkv_wkv7(r, w, k, v, a, b, s)",
     "A X = B, A triangular, solve X",
-    "gated_delta_net(q, k, v, g, beta, s)",
 
     "unary(x)",
 
@@ -1175,7 +1173,7 @@ static const char * LM_GGML_OP_SYMBOL[LM_GGML_OP_COUNT] = {
     "glu(x)",
 };
 
-static_assert(LM_GGML_OP_COUNT == 96, "LM_GGML_OP_COUNT != 96");
+static_assert(LM_GGML_OP_COUNT == 95, "LM_GGML_OP_COUNT != 95");
 
 static_assert(LM_GGML_OP_POOL_COUNT == 2, "LM_GGML_OP_POOL_COUNT != 2");
 
@@ -1302,12 +1300,6 @@ size_t lm_ggml_row_size(enum lm_ggml_type type, int64_t ne) {
     return lm_ggml_type_size(type)*ne/lm_ggml_blck_size(type);
 }
 
-double lm_ggml_type_sizef(enum lm_ggml_type type) {
-    assert(type >= 0);
-    assert(type < LM_GGML_TYPE_COUNT);
-    return ((double)(type_traits[type].type_size))/type_traits[type].blck_size;
-}
-
 const char * lm_ggml_type_name(enum lm_ggml_type type) {
     assert(type >= 0);
     assert(type < LM_GGML_TYPE_COUNT);
@@ -1392,11 +1384,12 @@ enum lm_ggml_type lm_ggml_ftype_to_lm_ggml_type(enum lm_ggml_ftype ftype) {
         case LM_GGML_FTYPE_MOSTLY_BF16:          wtype = LM_GGML_TYPE_BF16;  break;
         case LM_GGML_FTYPE_MOSTLY_Q4_0:          wtype = LM_GGML_TYPE_Q4_0;  break;
         case LM_GGML_FTYPE_MOSTLY_Q4_1:          wtype = LM_GGML_TYPE_Q4_1;  break;
+        case LM_GGML_FTYPE_MOSTLY_Q1_0:          wtype = LM_GGML_TYPE_Q1_0;  break;
+        case LM_GGML_FTYPE_MOSTLY_Q1_0_g128:     wtype = LM_GGML_TYPE_Q1_0_g128;  break;
         case LM_GGML_FTYPE_MOSTLY_Q5_0:          wtype = LM_GGML_TYPE_Q5_0;  break;
         case LM_GGML_FTYPE_MOSTLY_Q5_1:          wtype = LM_GGML_TYPE_Q5_1;  break;
         case LM_GGML_FTYPE_MOSTLY_Q8_0:          wtype = LM_GGML_TYPE_Q8_0;  break;
         case LM_GGML_FTYPE_MOSTLY_MXFP4:         wtype = LM_GGML_TYPE_MXFP4; break;
-        case LM_GGML_FTYPE_MOSTLY_NVFP4:         wtype = LM_GGML_TYPE_NVFP4; break;
         case LM_GGML_FTYPE_MOSTLY_Q2_K:          wtype = LM_GGML_TYPE_Q2_K;  break;
         case LM_GGML_FTYPE_MOSTLY_Q3_K:          wtype = LM_GGML_TYPE_Q3_K;  break;
         case LM_GGML_FTYPE_MOSTLY_Q4_K:          wtype = LM_GGML_TYPE_Q4_K;  break;
@@ -1435,14 +1428,16 @@ static bool lm_ggml_is_contiguous_n(const struct lm_ggml_tensor * tensor, int n)
     }
     next_nb *= tensor->ne[0]/lm_ggml_blck_size(tensor->type);
     for (int i = 1; i < LM_GGML_MAX_DIMS; i++) {
-        if (i > n) {
-            if (tensor->ne[i] != 1 && tensor->nb[i] != next_nb) {
-                return false;
+        if (tensor->ne[i] != 1) {
+            if (i > n) {
+                if (tensor->nb[i] != next_nb) {
+                    return false;
+                }
+                next_nb *= tensor->ne[i];
+            } else {
+                // this dimension does not need to be contiguous
+                next_nb = tensor->ne[i]*tensor->nb[i];
             }
-            next_nb *= tensor->ne[i];
-        } else {
-            // this dimension does not need to be contiguous
-            next_nb = tensor->ne[i]*tensor->nb[i];
         }
     }
     return true;
@@ -4970,7 +4965,6 @@ static struct lm_ggml_tensor * lm_ggml_interpolate_impl(
     LM_GGML_ASSERT((mode & 0xFF) < LM_GGML_SCALE_MODE_COUNT);
     // TODO: implement antialias for modes other than bilinear
     LM_GGML_ASSERT(!(mode & LM_GGML_SCALE_FLAG_ANTIALIAS) || (mode & 0xFF) == LM_GGML_SCALE_MODE_BILINEAR);
-    LM_GGML_ASSERT(a->type == LM_GGML_TYPE_F32);
 
     struct lm_ggml_tensor * result = lm_ggml_new_tensor_4d(ctx, a->type, ne0, ne1, ne2, ne3);
 
@@ -5316,7 +5310,6 @@ struct lm_ggml_tensor * lm_ggml_flash_attn_ext(
     LM_GGML_ASSERT(q->ne[3] == v->ne[3]);
 
     if (mask) {
-        LM_GGML_ASSERT(mask->type == LM_GGML_TYPE_F16);
         LM_GGML_ASSERT(lm_ggml_is_contiguous(mask));
         //LM_GGML_ASSERT(lm_ggml_can_repeat_rows(mask, qk));
 
@@ -6147,57 +6140,6 @@ struct lm_ggml_tensor * lm_ggml_solve_tri(
     result->op     = LM_GGML_OP_SOLVE_TRI;
     result->src[0] = a;
     result->src[1] = b;
-
-    return result;
-}
-
-// lm_ggml_gated_delta_net
-
-struct lm_ggml_tensor * lm_ggml_gated_delta_net(
-        struct lm_ggml_context * ctx,
-        struct lm_ggml_tensor  * q,
-        struct lm_ggml_tensor  * k,
-        struct lm_ggml_tensor  * v,
-        struct lm_ggml_tensor  * g,
-        struct lm_ggml_tensor  * beta,
-        struct lm_ggml_tensor  * state) {
-    LM_GGML_ASSERT(lm_ggml_is_contiguous_rows(q));
-    LM_GGML_ASSERT(lm_ggml_is_contiguous_rows(k));
-    LM_GGML_ASSERT(lm_ggml_is_contiguous_rows(v));
-    LM_GGML_ASSERT(lm_ggml_is_contiguous(g));
-    LM_GGML_ASSERT(lm_ggml_is_contiguous(beta));
-    LM_GGML_ASSERT(lm_ggml_is_contiguous(state));
-
-    LM_GGML_ASSERT(q->type == LM_GGML_TYPE_F32);
-    LM_GGML_ASSERT(k->type == LM_GGML_TYPE_F32);
-    LM_GGML_ASSERT(v->type == LM_GGML_TYPE_F32);
-    LM_GGML_ASSERT(g->type == LM_GGML_TYPE_F32);
-    LM_GGML_ASSERT(beta->type == LM_GGML_TYPE_F32);
-    LM_GGML_ASSERT(state->type == LM_GGML_TYPE_F32);
-
-    const int64_t S_v      = v->ne[0];
-    const int64_t H        = v->ne[1];
-    const int64_t n_tokens = v->ne[2];
-    const int64_t n_seqs   = v->ne[3];
-
-    // gate: scalar [1, H, T, B] or vector [S_v, H, T, B] (KDA)
-    LM_GGML_ASSERT(g->ne[0] == 1 || g->ne[0] == S_v);
-    LM_GGML_ASSERT(beta->ne[0] == 1);
-
-    LM_GGML_ASSERT(lm_ggml_nelements(state) == S_v * S_v * H * n_seqs);
-
-    // concat output and new_state into a single tensor
-    // output: S_v * H * n_tokens * n_seqs, state: S_v * S_v * H * n_seqs
-    const int64_t ne[4] = { S_v * H, n_tokens * n_seqs + S_v * n_seqs, 1, 1 };
-    struct lm_ggml_tensor * result = lm_ggml_new_tensor(ctx, LM_GGML_TYPE_F32, 4, ne);
-
-    result->op     = LM_GGML_OP_GATED_DELTA_NET;
-    result->src[0] = q;
-    result->src[1] = k;
-    result->src[2] = v;
-    result->src[3] = g;
-    result->src[4] = beta;
-    result->src[5] = state;
 
     return result;
 }
@@ -7603,9 +7545,9 @@ void lm_ggml_quantize_init(enum lm_ggml_type type) {
         case LM_GGML_TYPE_IQ2_XS:
         case LM_GGML_TYPE_IQ2_S:
         case LM_GGML_TYPE_IQ1_S:
-        case LM_GGML_TYPE_IQ1_M:   lm_iq2xs_init_impl(type); break;
-        case LM_GGML_TYPE_IQ3_XXS: lm_iq3xs_init_impl(256); break;
-        case LM_GGML_TYPE_IQ3_S:   lm_iq3xs_init_impl(512); break;
+        case LM_GGML_TYPE_IQ1_M:   iq2xs_init_impl(type); break;
+        case LM_GGML_TYPE_IQ3_XXS: iq3xs_init_impl(256); break;
+        case LM_GGML_TYPE_IQ3_S:   iq3xs_init_impl(512); break;
         default: // nothing
             break;
     }
@@ -7616,13 +7558,13 @@ void lm_ggml_quantize_init(enum lm_ggml_type type) {
 void lm_ggml_quantize_free(void) {
     lm_ggml_critical_section_start();
 
-    lm_iq2xs_free_impl(LM_GGML_TYPE_IQ2_XXS);
-    lm_iq2xs_free_impl(LM_GGML_TYPE_IQ2_XS);
-    lm_iq2xs_free_impl(LM_GGML_TYPE_IQ2_S);
-    lm_iq2xs_free_impl(LM_GGML_TYPE_IQ1_S);
-    lm_iq2xs_free_impl(LM_GGML_TYPE_IQ1_M);
-    lm_iq3xs_free_impl(256);
-    lm_iq3xs_free_impl(512);
+    iq2xs_free_impl(LM_GGML_TYPE_IQ2_XXS);
+    iq2xs_free_impl(LM_GGML_TYPE_IQ2_XS);
+    iq2xs_free_impl(LM_GGML_TYPE_IQ2_S);
+    iq2xs_free_impl(LM_GGML_TYPE_IQ1_S);
+    iq2xs_free_impl(LM_GGML_TYPE_IQ1_M);
+    iq3xs_free_impl(256);
+    iq3xs_free_impl(512);
 
     lm_ggml_critical_section_end();
 }
@@ -7660,13 +7602,14 @@ size_t lm_ggml_quantize_chunk(
     size_t result = 0;
 
     switch (type) {
+        case LM_GGML_TYPE_Q1_0:    result = quantize_q1_0(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
+        case LM_GGML_TYPE_Q1_0_g128: result = quantize_q1_0_g128(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
         case LM_GGML_TYPE_Q4_0:    result = quantize_q4_0(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
         case LM_GGML_TYPE_Q4_1:    result = quantize_q4_1(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
         case LM_GGML_TYPE_Q5_0:    result = quantize_q5_0(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
         case LM_GGML_TYPE_Q5_1:    result = quantize_q5_1(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
         case LM_GGML_TYPE_Q8_0:    result = quantize_q8_0(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
         case LM_GGML_TYPE_MXFP4:   result = quantize_mxfp4(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
-        case LM_GGML_TYPE_NVFP4:   result = quantize_nvfp4(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
         case LM_GGML_TYPE_Q2_K:    result = quantize_q2_K(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
         case LM_GGML_TYPE_Q3_K:    result = quantize_q3_K(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;
         case LM_GGML_TYPE_Q4_K:    result = quantize_q4_K(src + start, (char *) dst + start_row * row_size, nrows, n_per_row, imatrix); break;

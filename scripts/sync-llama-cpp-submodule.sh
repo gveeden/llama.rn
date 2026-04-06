@@ -1,80 +1,102 @@
 #!/bin/bash
 set -euo pipefail
 
-STAGING_BRANCH="auto/sync-llama.cpp-staging"
 LLAMA_DIR="third_party/llama.cpp"
+CPP_DIR="cpp"
+SRC_DIR="src"
+OS=$(uname)
 
-echo "🌱 Preparing staging branch: $STAGING_BRANCH"
-git fetch origin main
-
-# Clean up any existing staging branch to ensure fresh start
-git push origin --delete "$STAGING_BRANCH" 2>/dev/null || echo "No existing staging branch to delete"
-git branch -D "$STAGING_BRANCH" 2>/dev/null || echo "No local staging branch to delete"
-
-git checkout -B "$STAGING_BRANCH" origin/main
-
-echo "🔍 Checking latest llama.cpp release..."
-if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-  LATEST_TAG=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/ggml-org/llama.cpp/releases/latest | jq -r .tag_name)
-else
-  LATEST_TAG=$(curl -s https://api.github.com/repos/ggml-org/llama.cpp/releases/latest | jq -r .tag_name)
-fi
-
-if [[ -z "$LATEST_TAG" || "$LATEST_TAG" == "null" ]]; then
-  echo "❌ Failed to fetch latest tag"
-  exit 1
-fi
-
+echo "🔍 Ensuring PrismML prism branch is checked out..."
 cd "$LLAMA_DIR"
-CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "none")
+git fetch origin
+git checkout prism
 cd -
 
-echo "📌 Latest tag: $LATEST_TAG"
-echo "📦 Current tag in llama.cpp: $CURRENT_TAG"
+echo "🧹 Cleaning up existing cpp directory..."
+rm -rf "$CPP_DIR"/*.c "$CPP_DIR"/*.h "$CPP_DIR"/*.cpp
+rm -rf "$CPP_DIR"/common "$CPP_DIR"/ggml-cpu "$CPP_DIR"/ggml-metal
+rm -rf "$CPP_DIR"/models "$CPP_DIR"/tools
 
-if [[ "$LATEST_TAG" == "$CURRENT_TAG" ]]; then
-  echo "✅ Already synced to $LATEST_TAG"
-  echo "🛠 Running bootstrap to ensure cpp/ directory is up to date..."
-  npm run bootstrap
+# 1. Copy GGML core
+echo "📦 Copying GGML core..."
+cp "$LLAMA_DIR"/ggml/src/ggml*.c "$CPP_DIR"/
+cp "$LLAMA_DIR"/ggml/src/ggml*.h "$CPP_DIR"/
+cp "$LLAMA_DIR"/ggml/src/ggml*.cpp "$CPP_DIR"/
+cp "$LLAMA_DIR"/ggml/include/ggml*.h "$CPP_DIR"/
 
-  # Check if bootstrap created any changes
-  if ! git diff --quiet || ! git diff --cached --quiet; then
-    echo "💾 Committing bootstrap changes..."
-    git add -A
-    git commit -m "chore(sync): update cpp/ directory with bootstrap (no llama.cpp version change)"
-  fi
+# 2. Copy Llama core
+echo "📦 Copying Llama core..."
+cp "$LLAMA_DIR"/include/llama.h "$CPP_DIR"/
+cp "$LLAMA_DIR"/src/llama*.cpp "$CPP_DIR"/
+cp "$LLAMA_DIR"/src/llama*.h "$CPP_DIR"/
 
-  # Still need to push the staging branch for the workflow to continue
-  if [[ -z "${IGNORE_PUSH:-}" ]]; then
-    git push origin "$STAGING_BRANCH"
-  fi
-  exit 0
+# 3. Copy Hardware Backends
+echo "📦 Copying Hardware Backends..."
+if [ -d "$LLAMA_DIR/ggml/src/ggml-metal" ]; then
+    cp -r "$LLAMA_DIR/ggml/src/ggml-metal" "$CPP_DIR/ggml-metal"
+fi
+if [ -d "$LLAMA_DIR/ggml/src/ggml-cpu" ]; then
+    cp -r "$LLAMA_DIR/ggml/src/ggml-cpu" "$CPP_DIR/ggml-cpu"
 fi
 
-echo "📥 Updating llama.cpp to $LATEST_TAG..."
+# 4. Copy Common Utilities
+echo "📦 Copying Common Utilities..."
+mkdir -p "$CPP_DIR"/common
+cp -r "$LLAMA_DIR"/common/*.h "$CPP_DIR"/common/
+cp -r "$LLAMA_DIR"/common/*.cpp "$CPP_DIR"/common/
+
+# 5. Copy Vendors
+echo "📦 Copying Vendors..."
+rm -rf "$CPP_DIR"/nlohmann
+cp -r "$LLAMA_DIR"/vendor/nlohmann "$CPP_DIR"/nlohmann
+
+# 6. Apply Prefixing
+echo "🔄 Applying LM_ prefix to symbols..."
+files_add_lm_prefix=(
+  ./cpp/ggml-metal/*.cpp
+  ./cpp/ggml-metal/*.h
+  ./cpp/ggml-metal/*.m
+  ./cpp/ggml-metal/*.metal
+  ./cpp/ggml-cpu/*.h
+  ./cpp/ggml-cpu/*.c
+  ./cpp/ggml-cpu/*.cpp
+  ./cpp/*.h
+  ./cpp/*.cpp
+  ./cpp/*.c
+  ./cpp/common/*.h
+  ./cpp/common/*.cpp
+)
+
+for file in "${files_add_lm_prefix[@]}"; do
+  if [ ! -f "$file" ]; then continue; fi
+  if [[ $file == *"/cpp/rn-"* ]]; then continue; fi
+
+  if [ "$OS" = "Darwin" ]; then
+    sed -i "" "s|GGML_|LM_GGML_|g" "$file"
+    sed -i "" "s|ggml_|lm_ggml_|g" "$file"
+    sed -i "" "s|GGUF_|LM_GGUF_|g" "$file"
+    sed -i "" "s|gguf_|lm_gguf_|g" "$file"
+    sed -i "" "s|GGMLMetalClass|LMGGMLMetalClass|g" "$file"
+    sed -i "" "s|<nlohmann/json.hpp>|"nlohmann/json.hpp"|g" "$file"
+    sed -i "" "s|<nlohmann/json_fwd.hpp>|"nlohmann/json_fwd.hpp"|g" "$file"
+  else
+    sed -i "s|GGML_|LM_GGML_|g" "$file"
+    sed -i "s|ggml_|lm_ggml_|g" "$file"
+    sed -i "s|GGUF_|LM_GGUF_|g" "$file"
+    sed -i "s|gguf_|lm_gguf_|g" "$file"
+    sed -i "s|GGMLMetalClass|LMGGMLMetalClass|g" "$file"
+    sed -i "s|<nlohmann/json.hpp>|"nlohmann/json.hpp"|g" "$file"
+    sed -i "s|<nlohmann/json_fwd.hpp>|"nlohmann/json_fwd.hpp"|g" "$file"
+  fi
+done
+
+# 7. Get version info
 cd "$LLAMA_DIR"
-git fetch --tags
-git checkout "refs/tags/$LATEST_TAG"
+BUILD_NUMBER=$(git rev-list --count HEAD)
+BUILD_COMMIT=$(git rev-parse --short=7 HEAD)
 cd -
+rm -f "$SRC_DIR/version.ts"
+echo "export const BUILD_NUMBER = "$BUILD_NUMBER"" > "$SRC_DIR/version.ts"
+echo "export const BUILD_COMMIT = "$BUILD_COMMIT"" >> "$SRC_DIR/version.ts"
 
-git add "$LLAMA_DIR"
-git commit -m "chore: update llama.cpp to $LATEST_TAG (submodule ref)"
-
-echo "🛠 Running bootstrap to copy files and apply patches..."
-npm run bootstrap
-
-# Check if bootstrap created any changes in cpp/ directory
-if git diff --quiet && git diff --cached --quiet; then
-  echo "✅ No changes after bootstrap — cpp/ directory already up to date."
-else
-  echo "💾 Committing bootstrap changes..."
-  git add -A
-  git commit -m "chore(sync): update cpp/ directory after llama.cpp $LATEST_TAG bootstrap"
-fi
-
-if [[ -z "${IGNORE_PUSH:-}" ]]; then
-  git push origin "$STAGING_BRANCH"
-  echo "🚀 Submodule updated, bootstrap completed, and committed to staging branch"
-else
-  echo "Ignoring push due to IGNORE_PUSH flag"
-fi
+echo "✨ Sync complete!"
