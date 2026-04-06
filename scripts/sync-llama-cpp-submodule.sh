@@ -55,13 +55,13 @@ if [ -d "$LLAMA_DIR/common/jinja" ]; then
     if [ -f "$CPP_DIR/common/jinja/string.h" ]; then
         mv "$CPP_DIR/common/jinja/string.h" "$CPP_DIR/common/jinja/jinja-string.h"
         mv "$CPP_DIR/common/jinja/string.cpp" "$CPP_DIR/common/jinja/jinja-string.cpp"
-        # Update the one include reference
+        # Update all include references to the renamed file
         if [ "$OS" = "Darwin" ]; then
-            sed -i "" 's|#include "string.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/value.h"
-            sed -i "" 's|#include "string.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/jinja-string.cpp"
+            sed -i "" 's|#include "string\.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/value.h"
+            sed -i "" 's|#include "jinja/string\.h"|#include "jinja/jinja-string.h"|g' "$CPP_DIR/common/jinja/jinja-string.cpp"
         else
-            sed -i 's|#include "string.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/value.h"
-            sed -i 's|#include "string.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/jinja-string.cpp"
+            sed -i 's|#include "string\.h"|#include "jinja-string.h"|g' "$CPP_DIR/common/jinja/value.h"
+            sed -i 's|#include "jinja/string\.h"|#include "jinja/jinja-string.h"|g' "$CPP_DIR/common/jinja/jinja-string.cpp"
         fi
     fi
 fi

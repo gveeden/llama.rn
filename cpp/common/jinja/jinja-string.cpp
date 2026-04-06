@@ -1,4 +1,4 @@
-#include "jinja/string.h"
+#include "jinja/jinja-string.h"
 #include "jinja/value.h"
 
 #include <algorithm>
