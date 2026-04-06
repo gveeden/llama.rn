@@ -296,7 +296,6 @@ common_chat_params llama_rn_context::getFormattedChatWithJinja(
     }
 
     inputs.chat_template_kwargs = chat_template_kwargs;
-    inputs.force_pure_content = force_pure_content;
 
     // If chat_template is provided, create new one and use it (probably slow)
     if (!chat_template.empty()) {

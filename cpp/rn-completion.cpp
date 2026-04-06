@@ -34,7 +34,6 @@ void llama_rn_context_completion::rewind() {
     parent_ctx->params.sampling.grammar_lazy = false;
     parent_ctx->params.sampling.grammar_triggers.clear();
     parent_ctx->params.sampling.preserved_tokens.clear();
-    parent_ctx->params.sampling.generation_prompt.clear();
     num_prompt_tokens = 0;
     num_tokens_predicted = 0;
     prefill_text = "";
@@ -462,7 +461,6 @@ completion_chat_output llama_rn_context_completion::parseChatOutput(bool is_part
     common_chat_parser_params syntax;
     syntax.format = static_cast<common_chat_format>(current_chat_format);
     syntax.reasoning_format = current_reasoning_format;
-    syntax.generation_prompt = current_generation_prompt;
     syntax.parse_tool_calls = true;
 
     // Load the PEG parser if available (required for COMMON_CHAT_FORMAT_PEG_* formats)
