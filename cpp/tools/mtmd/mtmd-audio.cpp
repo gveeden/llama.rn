@@ -11,7 +11,7 @@
 
 // some of the code here is copied from whisper.cpp
 
-constexpr bool DEBUG = false;
+constexpr bool MTMD_AUDIO_DEBUG_FLAG = false;
 
 void mtmd_audio_cache::fill_sin_cos_table(int n) {
     sin_vals.resize(n);

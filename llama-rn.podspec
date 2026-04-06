@@ -33,7 +33,6 @@ Pod::Spec.new do |s|
       "cpp/ggml-opencl/*.{c,cpp}",
       "cpp/ggml-hexagon/**/*.{c,cpp}",
       "cpp/tools/mtmd/mtmd-cli.cpp",
-      "cpp/tools/mtmd/mtmd-audio.cpp",
       "cpp/ggml-cpu/kleidiai/**/*",
       "cpp/ggml-cpu/spacemit/**/*",
       "cpp/ggml-cpu/arch/riscv/**/*",

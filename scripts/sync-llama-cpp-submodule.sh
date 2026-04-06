@@ -48,6 +48,14 @@ mkdir -p "$CPP_DIR/tools/mtmd" "$CPP_DIR/tools/mtmd/models"
 cp "$LLAMA_DIR"/tools/mtmd/mtmd.{h,cpp} "$CPP_DIR/tools/mtmd/"
 cp "$LLAMA_DIR"/tools/mtmd/mtmd-helper.{h,cpp} "$CPP_DIR/tools/mtmd/"
 cp "$LLAMA_DIR"/tools/mtmd/mtmd-audio.{h,cpp} "$CPP_DIR/tools/mtmd/"
+# Fix DEBUG macro conflict: Apple builds define DEBUG=1 which breaks constexpr bool DEBUG
+if [ "$OS" = "Darwin" ]; then
+    sed -i "" 's/constexpr bool DEBUG = /constexpr bool MTMD_AUDIO_DEBUG_FLAG = /g' "$CPP_DIR/tools/mtmd/mtmd-audio.cpp"
+    sed -i "" 's/\bDEBUG\b/MTMD_AUDIO_DEBUG_FLAG/g' "$CPP_DIR/tools/mtmd/mtmd-audio.cpp"
+else
+    sed -i 's/constexpr bool DEBUG = /constexpr bool MTMD_AUDIO_DEBUG_FLAG = /g' "$CPP_DIR/tools/mtmd/mtmd-audio.cpp"
+    sed -i 's/\bDEBUG\b/MTMD_AUDIO_DEBUG_FLAG/g' "$CPP_DIR/tools/mtmd/mtmd-audio.cpp"
+fi
 cp "$LLAMA_DIR"/tools/mtmd/clip.{h,cpp} "$CPP_DIR/tools/mtmd/"
 cp "$LLAMA_DIR"/tools/mtmd/clip-graph.h "$CPP_DIR/tools/mtmd/"
 cp "$LLAMA_DIR"/tools/mtmd/clip-impl.h "$CPP_DIR/tools/mtmd/"
