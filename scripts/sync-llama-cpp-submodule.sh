@@ -13,7 +13,12 @@ git checkout prism
 cd -
 
 echo "🧹 Cleaning up existing cpp directory..."
-rm -rf "$CPP_DIR"/*.c "$CPP_DIR"/*.h "$CPP_DIR"/*.cpp
+# Remove only llama.cpp-origin files; preserve rn-*.{h,cpp,hpp} which are llama.rn-native
+rm -f "$CPP_DIR"/ggml*.c "$CPP_DIR"/ggml*.h "$CPP_DIR"/ggml*.cpp
+rm -f "$CPP_DIR"/gguf*.h "$CPP_DIR"/gguf*.cpp
+rm -f "$CPP_DIR"/llama*.h "$CPP_DIR"/llama*.cpp
+rm -f "$CPP_DIR"/unicode*.h "$CPP_DIR"/unicode*.cpp
+rm -f "$CPP_DIR"/anyascii*.h "$CPP_DIR"/anyascii*.c
 rm -rf "$CPP_DIR"/common "$CPP_DIR"/ggml-cpu "$CPP_DIR"/ggml-metal
 rm -rf "$CPP_DIR"/models "$CPP_DIR"/tools
 
@@ -22,6 +27,7 @@ echo "📦 Copying GGML core..."
 cp "$LLAMA_DIR"/ggml/src/ggml*.c "$CPP_DIR"/
 cp "$LLAMA_DIR"/ggml/src/ggml*.h "$CPP_DIR"/
 cp "$LLAMA_DIR"/ggml/src/ggml*.cpp "$CPP_DIR"/
+cp "$LLAMA_DIR"/ggml/src/gguf.cpp "$CPP_DIR"/
 cp "$LLAMA_DIR"/ggml/include/ggml*.h "$CPP_DIR"/
 cp "$LLAMA_DIR"/ggml/include/gguf*.h "$CPP_DIR"/
 
